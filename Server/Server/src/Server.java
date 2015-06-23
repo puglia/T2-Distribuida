@@ -5,15 +5,18 @@ import java.sql.SQLException;
 import org.jgroups.JChannel;
 import org.jgroups.Message;
 import org.jgroups.ReceiverAdapter;
+import org.jgroups.blocks.MessageDispatcher;
+import org.jgroups.blocks.RequestHandler;
 import org.jgroups.util.Util;
 
-public class Server extends ReceiverAdapter {
+public class Server implements RequestHandler {
     JChannel channel;
+    MessageDispatcher dispatcher;
     String user_name=System.getProperty("user.name", "n/a");
     
-    private DbInterface bank = null;
+    private DbInterface dao = null;
 
-    public void receive(Message msg) {
+    public Object handle(Message msg) {
         Data data = null;
         try {
             data = (Data)Util.streamableFromByteBuffer(Data.class, msg.getRawBuffer(), msg.getOffset(), msg.getLength());
@@ -23,46 +26,51 @@ public class Server extends ReceiverAdapter {
         }
         System.out.printf("Receive data from %s \n", data.getName());
         
-        if (data.getName().equals("SALDO")) {
-            int saldo = 0;
+        switch(data.getOperation()) {
+        case CONSULTAR:
+            String seats = "";
             try {
-                saldo = bank.saldo(data.getAccount());
+                seats = dao.getAvailableSeats(data.getMovie());
             } catch (SQLException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
-            System.out.printf("Saldo de %s= %d \n", data.getAccount(), saldo);
-        } else {
-            bank.insert(data.getAccount(), data.getName(), data.isDeposit(), data.getValue());
+            System.out.printf("Assentos para %s= %s \n", data.getMovie(), seats);
+            return "Assentos para" + data.getMovie() + " = " + seats;
+        case RESERVAR:
+           dao.insert(data.getName(),data.getReservedSeat());
         }
+        return "Operação efetuada com Sucesso!";
     }
 
     private void start() throws Exception {
     	System.setProperty("java.net.preferIPv4Stack", "true");
         channel=new JChannel();
-        channel.setReceiver(this);
-        
-
+        //channel.setReceiver(this);
         channel.connect("bank");
         
-        bank = new DbInterface();
+        dispatcher = new MessageDispatcher(channel, null, null, this);
         
-        bank.start();
+        dao = new DbInterface();
+        
+        dao.start();
         String accountName = "conta1";
-        if (!bank.accountExists(accountName)) {
-            bank.createAccount(accountName);
-        }
+//        if (!bank.accountExists(accountName)) {
+//            bank.createAccount(accountName);
+//        }
 //        account.deposit(accountName, "Rafael", 1000);
 //        
 //        account.debit(accountName, "Thiago", 100);
 //        
 //        account.deposit(accountName, "Gianlucca", 500);
-        
+        Data data = new Data("jurassic world",null,Operation.CONSULTAR);
+        byte[] buf=Util.streamableToByteBuffer(data);
+        this.handle(new Message(null,buf));
+        data = new Data("jurassic world","192.168.1.4",Operation.RESERVAR, new Seat(2,"A"));
+        buf=Util.streamableToByteBuffer(data);
+        this.handle(new Message(null,buf));
         waitAction();
         channel.close();
-        
-
-        
         
     }
 

@@ -6,57 +6,59 @@ import org.jgroups.util.Util;
 
 public class Data implements Streamable {
 
-    private String account;
+    private String movie;
     private String name;
-    private int value;
-    private boolean deposit;
+    private Operation operation;
+    private Seat reservedSeat;
+    
     public Data() {}
-
-    public Data(String account, String name, int value, boolean deposit) {
-        this.account=account;
-        this.name=name;
-        this.value=value;
-        this.deposit = deposit;
+    
+    public Data(String movie, String name, Operation operation) {
+        super();
+        this.movie = movie;
+        this.name = name;
+        this.operation = operation;
     }
     
+    public Data(String movie, String name, Operation operation,
+            Seat reservedSeat) {
+        super();
+        this.movie = movie;
+        this.name = name;
+        this.operation = operation;
+        this.reservedSeat = reservedSeat;
+    }
+
     @Override
     public void readFrom(DataInput in) throws Exception {
-//        account = in.readLine();
-//        name = in.readLine();
-//        value = in.readInt();
-//        deposit = in.readBoolean();
-        account=(String)Util.objectFromStream(in);
+        movie=(String)Util.objectFromStream(in);
         name=(String)Util.objectFromStream(in);
-        value=(int)Util.objectFromStream(in);
-        deposit=(boolean)Util.objectFromStream(in);
+        operation=(Operation)Util.objectFromStream(in);
+        reservedSeat=(Seat)Util.objectFromStream(in);
     }
 
     @Override
     public void writeTo(DataOutput out) throws Exception {
-//        out.writeChars(account);
-//        out.writeChars(name);
-//        out.write(value);
-//        out.writeBoolean(deposit);
-        
-        Util.objectToStream(account, out);
+        Util.objectToStream(movie, out);
         Util.objectToStream(name, out);
-        Util.objectToStream(value, out);
-        Util.objectToStream(deposit, out);
+        Util.objectToStream(operation, out);
+        Util.objectToStream(reservedSeat, out);
     }
     
-    public String getAccount() {
-        return account;
+    public String getMovie() {
+        return movie;
     }
 
     public String getName() {
         return name;
     }
 
-    public int getValue() {
-        return value;
+    public Operation getOperation() {
+        return operation;
+    }
+    
+    public Seat getReservedSeat() {
+        return reservedSeat;
     }
 
-    public boolean isDeposit() {
-        return deposit;
-    }
 }
