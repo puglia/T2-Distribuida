@@ -6,6 +6,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import com.dist.common.BusinessException;
+import com.dist.common.Seat;
+
 public class DbInterface {
 
     private Connection connection = null;

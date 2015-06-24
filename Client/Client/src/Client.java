@@ -11,6 +11,10 @@ import org.jgroups.blocks.ResponseMode;
 import org.jgroups.util.RspList;
 import org.jgroups.util.Util;
 
+import com.dist.common.Data;
+import com.dist.common.Operation;
+import com.dist.common.Seat;
+
 public class Client extends ReceiverAdapter {
     JChannel channel;
     MessageDispatcher dispatcher;

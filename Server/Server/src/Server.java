@@ -4,10 +4,14 @@ import java.sql.SQLException;
 
 import org.jgroups.JChannel;
 import org.jgroups.Message;
-import org.jgroups.ReceiverAdapter;
 import org.jgroups.blocks.MessageDispatcher;
 import org.jgroups.blocks.RequestHandler;
 import org.jgroups.util.Util;
+
+import com.dist.common.BusinessException;
+import com.dist.common.Data;
+import com.dist.common.Operation;
+import com.dist.common.Seat;
 
 public class Server implements RequestHandler {
     JChannel channel;
@@ -23,9 +27,9 @@ public class Server implements RequestHandler {
                     msg.getRawBuffer(), msg.getOffset(), msg.getLength());
 
             System.out.printf("Receive data from %s \n", data.getName());
-
-            switch (data.getOperation()) {
-            case CONSULTAR:
+            
+            switch (data.getOperation().getCode()) {
+            case 2:
                 String seats = "";
                 try {
                     seats = dao.getAvailableSeats(data.getMovie());
@@ -36,7 +40,7 @@ public class Server implements RequestHandler {
                 System.out.printf("Assentos para %s= %s \n", data.getMovie(),
                         seats);
                 return "Assentos para" + data.getMovie() + " = " + seats;
-            case RESERVAR:
+            case 1:
                 dao.insert(data.getName(), data.getMovie(),
                         data.getReservedSeat());
             }
