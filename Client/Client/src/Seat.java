@@ -15,6 +15,12 @@ public class Seat implements Streamable {
         super();
     }
     
+    public Seat(int number, String row) {
+        super();
+        this.number = number;
+        this.row = row;
+    }
+    
     public Seat(int number, String row, boolean reserved) {
         super();
         this.number = number;

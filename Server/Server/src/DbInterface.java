@@ -94,21 +94,41 @@ public class DbInterface {
         stmt.close();
         return seats.toString();
     }
+    
+    public boolean isSeatTaken(String movie, Seat seat) throws SQLException, BusinessException{
+        PreparedStatement stmt = null;
+        connection.setAutoCommit(false);
+        stmt = connection.prepareStatement("SELECT * FROM ASSENTO WHERE FILME = ? AND NUMERO = ? AND FILEIRA = ?;");
+        stmt.setString(1, movie);
+        stmt.setInt(2, seat.getNumber());
+        stmt.setString(3, seat.getRow().toUpperCase());
+        ResultSet rs = stmt.executeQuery();
+        
+        if(!rs.next())
+            throw new BusinessException("Assento Não Encontrado");
+        boolean taken = rs.getBoolean("reservado");
+        rs.close();
+        stmt.close();
+        return taken;
+    }
 
-    public void insert(String name, Seat seat) {
+    public void insert(String name, String movie, Seat seat) throws BusinessException  {
+        
         try {
-
+            if(isSeatTaken(movie, seat))
+                throw new BusinessException("Assento Ocupado");
             connection.setAutoCommit(false);
             PreparedStatement stmt;
 
             StringBuilder sql = new StringBuilder("UPDATE ASSENTO")
                     .append(" SET  DONO=? , RESERVADO = TRUE")
-                    .append(" WHERE NUMERO = ? AND FILEIRA = ?");
+                    .append(" WHERE NUMERO = ? AND FILEIRA = ? AND FILME=?");
             
             stmt = connection.prepareStatement(sql.toString());
             stmt.setString(1,name);
             stmt.setInt(2, seat.getNumber());
             stmt.setString(3, seat.getRow());
+            stmt.setString(4, movie);
 
             System.out.printf("insert is %s\n", sql);
             stmt.execute();
@@ -116,7 +136,7 @@ public class DbInterface {
             stmt.close();
             connection.commit();
 
-        } catch (Exception e) {
+        } catch (SQLException e) {
             System.err.println(e.getClass().getName() + ": " + e.getMessage());
             System.exit(0);
         }

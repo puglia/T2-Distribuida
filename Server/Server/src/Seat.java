@@ -7,6 +7,7 @@ import org.jgroups.util.Util;
 
 public class Seat implements Streamable {
 
+    
     private int number;
     private String row;
     private boolean reserved;

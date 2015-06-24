@@ -55,8 +55,10 @@ public class Client extends ReceiverAdapter {
                     data = new Data(movie, InetAddress.getLocalHost().getHostAddress(),  Operation.CONSULTAR);
                 } else if (line.startsWith("reserva")) {
                     String movie = line.replace("reserva ", "").trim();
-                    
-                    data = new Data(movie, InetAddress.getLocalHost().getHostAddress(),  Operation.RESERVAR);
+                    System.out.print("Informe um assento (fileira e número):");
+                    String param[]=in.readLine().toLowerCase().trim().split(" ", 2);
+                    Seat seat = new Seat(Integer.parseInt(param[1]),param[0]);
+                    data = new Data(movie, InetAddress.getLocalHost().getHostAddress(), Operation.RESERVAR, seat);
                     line="[" + user_name + "] -> " + line;
                 } 
                 byte[] buf=Util.streamableToByteBuffer(data);
