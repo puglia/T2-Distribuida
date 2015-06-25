@@ -6,12 +6,15 @@ import org.jgroups.JChannel;
 import org.jgroups.Message;
 import org.jgroups.blocks.MessageDispatcher;
 import org.jgroups.blocks.RequestHandler;
+import org.jgroups.protocols.DELAY;
+import org.jgroups.protocols.SEQUENCER;
+import org.jgroups.protocols.pbcast.NAKACK2;
+import org.jgroups.stack.Protocol;
+import org.jgroups.stack.ProtocolStack;
 import org.jgroups.util.Util;
 
 import com.dist.common.BusinessException;
 import com.dist.common.Data;
-import com.dist.common.Operation;
-import com.dist.common.Seat;
 
 public class Server implements RequestHandler {
     JChannel channel;
@@ -26,7 +29,7 @@ public class Server implements RequestHandler {
             data = (Data) Util.streamableFromByteBuffer(Data.class,
                     msg.getRawBuffer(), msg.getOffset(), msg.getLength());
 
-            System.out.printf("Receive data from %s \n", data.getName());
+            System.out.printf("Receive data from %s \n", msg.getSrc());
             
             switch (data.getOperation().getCode()) {
             case 2:
@@ -52,36 +55,49 @@ public class Server implements RequestHandler {
             e1.printStackTrace();
         }
 
-        return "Operação efetuada com Sucesso!";
+        return "Operacao efetuada com Sucesso!";
+    }
+    
+    private void setUpProtocolStack() throws Exception{
+      //******** protocols definition
+        System.out.print("protocol stack initialization\n");
+        ProtocolStack ps=channel.getProtocolStack();
+        SEQUENCER sequencer=new SEQUENCER();
+        
+        ps.insertProtocol(sequencer,ProtocolStack.ABOVE,NAKACK2.class);
+        System.out.print("Insert Sequencer \n");
+//        DELAY delay=new DELAY();
+//        delay.setInDelay(1);
+//        delay.setOutDelay(1);
+//        ps.insertProtocol(delay,ProtocolStack.ABOVE,SEQUENCER.class);
+        System.out.print("Insert delay \n");
+
+        //***********  protocols definition
+        
+        for (Protocol i : ps.getProtocols()) {
+            System.out.printf("get protocol %s\n", i.getName());
+        }
+      
+        System.out.print("coordinator?\n");
+        if (sequencer.isCoordinator()) {
+            System.out.print("coordinator\n");
+        } else {
+            System.out.print("not the coordinator\n");
+        }
     }
 
     private void start() throws Exception {
         System.setProperty("java.net.preferIPv4Stack", "true");
+        System.setProperty("log4j.configurationFile","/tmp/log4j2.xml");
         channel = new JChannel();
-        // channel.setReceiver(this);
         channel.connect("bank");
+        //setUpProtocolStack();
 
         dispatcher = new MessageDispatcher(channel, null, null, this);
 
-        dao = new DbInterface();
+        dao = new DbImplementation();
 
         dao.start();
-        String accountName = "conta1";
-        // if (!bank.accountExists(accountName)) {
-        // bank.createAccount(accountName);
-        // }
-        // account.deposit(accountName, "Rafael", 1000);
-        //
-        // account.debit(accountName, "Thiago", 100);
-        //
-        // account.deposit(accountName, "Gianlucca", 500);
-        Data data = new Data("jurassic world", null, Operation.CONSULTAR);
-        byte[] buf = Util.streamableToByteBuffer(data);
-        this.handle(new Message(null, buf));
-        data = new Data("jurassic world", "192.168.1.4", Operation.RESERVAR,
-                new Seat(2, "A"));
-        buf = Util.streamableToByteBuffer(data);
-        this.handle(new Message(null, buf));
         waitAction();
         channel.close();
 
