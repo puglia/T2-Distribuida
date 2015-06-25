@@ -33,8 +33,8 @@ public class Server implements RequestHandler {
             data = (Data) Util.streamableFromByteBuffer(Data.class,
                     msg.getRawBuffer(), msg.getOffset(), msg.getLength());
 
-            switch (data.getOperation().getCode()) {
-            case 2:
+            switch (data.getOperation()) {
+            case CONSULTAR:
                 String seats = "";
                 try {
                     seats = dao.getAvailableSeats(data.getMovie());
@@ -45,7 +45,7 @@ public class Server implements RequestHandler {
                 System.out.printf("Assentos para %s= %s \n", data.getMovie(),
                         seats);
                 return "Assentos para" + data.getMovie() + " = " + seats;
-            case 1:
+            case RESERVAR:
             	System.out.printf("Receive data from %s, %s: %s-%d\n", data.getName(), data.getOperation().getName(), data.getReservedSeat().getRow(), data.getReservedSeat().getNumber());
                 dao.insert(data.getName(), data.getMovie(),
                         data.getReservedSeat());
@@ -63,7 +63,7 @@ public class Server implements RequestHandler {
     
     private void start() throws Exception {
         System.setProperty("java.net.preferIPv4Stack", "true");
-        System.setProperty("log4j.configurationFile","/tmp/log4j2.xml");
+        System.setProperty("log4j.configurationFile","/log4j2.xml");
        
         channel = new JChannel();
         // channel.setReceiver(this);
@@ -104,11 +104,11 @@ public class Server implements RequestHandler {
         dao = new DbInterface();
 
         dao.start();
-
-        Data data = new Data("jurassic world", null, Operation.CONSULTAR);
+        String movie = "her";
+        Data data = new Data(movie, null, Operation.CONSULTAR);
         byte[] buf = Util.streamableToByteBuffer(data);
         this.handle(new Message(null, buf));
-        data = new Data("jurassic world", "192.168.1.4", Operation.RESERVAR,
+        data = new Data(movie, "192.168.1.4", Operation.RESERVAR,
                 new Seat(2, "A"));
         buf = Util.streamableToByteBuffer(data);
         this.handle(new Message(null, buf));

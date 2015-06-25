@@ -34,7 +34,7 @@ public class Client extends ReceiverAdapter {
 
     private void start() throws Exception {
     	System.setProperty("java.net.preferIPv4Stack", "true");
-        System.setProperty("log4j.configurationFile","/tmp/log4j2.xml");
+        System.setProperty("log4j.configurationFile","/log4j2.xml");
         channel=new JChannel();
         channel.setReceiver(this);
         

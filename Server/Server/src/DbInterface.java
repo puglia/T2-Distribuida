@@ -73,7 +73,7 @@ public class DbInterface {
                 sql.append(", ").append(j);
                 sql.append(", ").append(false);
                 sql.append(", NULL");
-                sql.append(", \'jurassic world\'").append(");");
+                sql.append(", \'her\'").append(");");
             }
         stmt.executeUpdate(sql.toString());
         stmt.close();
@@ -123,18 +123,14 @@ public class DbInterface {
                 throw new BusinessException("Assento Ocupado");
             connection.setAutoCommit(false);
             PreparedStatement stmt;
-
-            StringBuilder sql = new StringBuilder("UPDATE ASSENTO")
-                    .append(" SET  DONO=? , RESERVADO = TRUE")
-                    .append(" WHERE NUMERO = ? AND FILEIRA = ? AND FILME=?");
             
-            stmt = connection.prepareStatement(sql.toString());
+            stmt = connection.prepareStatement("UPDATE ASSENTO SET  DONO=? , RESERVADO = TRUE WHERE NUMERO = ? AND FILEIRA = ? AND FILME=?;");
             stmt.setString(1,name);
             stmt.setInt(2, seat.getNumber());
-            stmt.setString(3, seat.getRow());
+            stmt.setString(3, seat.getRow().toUpperCase());
             stmt.setString(4, movie);
 
-            System.out.printf("insert is %s\n", sql);
+            System.out.printf("insert is %s\n", stmt.toString());
             stmt.execute();
 
             stmt.close();
