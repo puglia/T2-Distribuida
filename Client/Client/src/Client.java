@@ -1,11 +1,12 @@
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.net.InetAddress;
+import java.security.SecureRandom;
 
 import org.jgroups.Address;
 import org.jgroups.JChannel;
 import org.jgroups.Message;
 import org.jgroups.ReceiverAdapter;
-import org.jgroups.View;
 import org.jgroups.blocks.MessageDispatcher;
 import org.jgroups.blocks.RequestOptions;
 import org.jgroups.blocks.ResponseMode;
@@ -28,8 +29,57 @@ public class Client extends ReceiverAdapter {
     String user_name=System.getProperty("user.name", "n/a");
 
     public void receive(Message msg) {
-        String line=msg.getSrc() + ": " + msg.getObject();
-        System.out.println(line);
+        try {
+            Data data = (Data) Util.streamableFromByteBuffer(Data.class,
+                    msg.getRawBuffer(), msg.getOffset(), msg.getLength());
+            if (data.getOperation() == Operation.EXECUTAR_BATCH) {
+                System.out.print("Batch execution request received!\n");
+                castBatch();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+    private void setProtocols() throws Exception{
+
+        //******** protocols definition
+        System.out.print("protocol stack initialization\n");
+        ProtocolStack ps=channel.getProtocolStack();
+
+        SEQUENCER sequencer=new SEQUENCER();
+        
+        ps.insertProtocol(sequencer,ProtocolStack.ABOVE,NAKACK2.class);
+        
+        int i = 0;
+        for (Address add : channel.getView().getMembers()) {
+            System.out.printf(" addr: %s \n", add.toString() );
+            if (add.equals(channel.getAddress()) && i == 2) {
+                System.out.printf("I am the delayed one %s\n",  channel.getAddressAsString());
+                DELAY delay=new DELAY();
+                //delay.setInDelay(730);
+                //delay.setOutDelay(730);
+                try {
+//                    ps.insertProtocol(delay,ProtocolStack.ABOVE,SEQUENCER.class);
+                } catch (Exception e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+            i++;
+        }
+        
+        for (Protocol p : ps.getProtocols()) {
+            System.out.printf("get protocol %s\n", p.getName());
+        }
+        //***********  protocols definition
+        
+        if (sequencer.isCoordinator()) {
+            System.out.print("coordinator\n");
+        } else {
+            System.out.print("not the coordinator\n");
+        }
+        
     }
 
     private void start() throws Exception {
@@ -49,7 +99,7 @@ public class Client extends ReceiverAdapter {
         
         ps.insertProtocol(sequencer,ProtocolStack.ABOVE,NAKACK2.class);
         channel.connect("bank");
-        
+
         int i = 0;
         for (Address add : channel.getView().getMembers()) {
             System.out.printf(" addr: %s \n", add.toString() );
@@ -80,13 +130,13 @@ public class Client extends ReceiverAdapter {
         	System.out.print("not the coordinator\n");
         }
         dispatcher = new MessageDispatcher(channel, null, null);
+
         
         System.out.print("Client initialized\n");
         
         waitValue();
 
         channel.close();
-        
     }
 //    
 //    public void viewAccepted(View view) {
@@ -130,17 +180,42 @@ public class Client extends ReceiverAdapter {
                     data = new Data(movie, channel.getAddressAsString(), Operation.RESERVAR, seat);
                     line="[" + user_name + "] -> " + line;
                 } 
+                else if(line.startsWith("batch")){
+                    byte[] messageContent = Util.streamableToByteBuffer(new Data(null,null,Operation.EXECUTAR_BATCH));
+                    channel.send( new Message(null, messageContent));
+                    castBatch();
+                    continue;
+                    }
+                else if(line.contains("cluster")){
+                    for(Address addr: channel.getView().getMembers())
+                        System.out.print(addr.toString()+"\n");
+                }
                 byte[] buf=Util.streamableToByteBuffer(data);
                 
                 
                 RspList<Object> responses = dispatcher.castMessage(channel.getView().getMembers(), new Message(null, buf),options());
                 processResponse(responses.getFirst());
-                //channel.send(new Message(null, buf));
                 
             }
                 catch(Exception e) {
             }
         }
+    }
+    
+    public void castBatch() throws Exception{
+        char row;
+        int number;
+        Thread.sleep(1000);
+        SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
+        random.setSeed(System.currentTimeMillis());
+        for(int i =0; i <15; i++){
+           number =  Math.abs(random.nextInt()%20);
+           row = (char) ('A' + Math.abs(random.nextInt()%12)); 
+           Seat seat = new Seat(number,Character.toString(row));
+           Data data = new Data("her", InetAddress.getLocalHost().getHostName(), Operation.RESERVAR, seat);
+           byte[] buf=Util.streamableToByteBuffer(data);
+           dispatcher.castMessage(channel.getView().getMembers(), new Message(null, buf),options());
+         }
     }
 
     private void processResponse(Object object){
@@ -149,7 +224,7 @@ public class Client extends ReceiverAdapter {
     }
     
     private RequestOptions options(){
-        return new RequestOptions(ResponseMode.GET_ALL, SERVER_TIMEOUT);
+        return new RequestOptions(ResponseMode.GET_FIRST, SERVER_TIMEOUT);
     }
 
     public static void main(String[] args) throws Exception {

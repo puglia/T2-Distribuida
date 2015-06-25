@@ -2,13 +2,10 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.sql.SQLException;
 
-import org.jgroups.Address;
 import org.jgroups.JChannel;
 import org.jgroups.Message;
-import org.jgroups.View;
 import org.jgroups.blocks.MessageDispatcher;
 import org.jgroups.blocks.RequestHandler;
-import org.jgroups.protocols.DELAY;
 import org.jgroups.protocols.SEQUENCER;
 import org.jgroups.protocols.pbcast.NAKACK2;
 import org.jgroups.stack.Protocol;
@@ -34,7 +31,10 @@ public class Server implements RequestHandler {
                     msg.getRawBuffer(), msg.getOffset(), msg.getLength());
 
             switch (data.getOperation()) {
+            
             case CONSULTAR:
+            System.out.printf("Receive data from %s \n", msg.getSrc());
+            
                 String seats = "";
                 try {
                     seats = dao.getAvailableSeats(data.getMovie());
@@ -49,6 +49,8 @@ public class Server implements RequestHandler {
             	System.out.printf("Receive data from %s, %s: %s-%d\n", data.getName(), data.getOperation().getName(), data.getReservedSeat().getRow(), data.getReservedSeat().getNumber());
                 dao.insert(data.getName(), data.getMovie(),
                         data.getReservedSeat());
+            default:
+                break;
             }
         }  catch (BusinessException e1) {
             return e1.getLocalizedMessage();
@@ -59,51 +61,53 @@ public class Server implements RequestHandler {
         }
 
         return "Operacao efetuada com Sucesso!";
+
     }
     
-    private void start() throws Exception {
-        System.setProperty("java.net.preferIPv4Stack", "true");
-        System.setProperty("log4j.configurationFile","/log4j2.xml");
-       
-        channel = new JChannel();
-        // channel.setReceiver(this);
-        
-        
-        
-        //******** protocols definition
+    private void setUpProtocolStack() throws Exception{
+      //******** protocols definition
         System.out.print("protocol stack initialization\n");
         ProtocolStack ps=channel.getProtocolStack();
         SEQUENCER sequencer=new SEQUENCER();
         
         ps.insertProtocol(sequencer,ProtocolStack.ABOVE,NAKACK2.class);
         System.out.print("Insert Sequencer \n");
-        DELAY delay=new DELAY();
-        delay.setInDelay(1);
-        delay.setOutDelay(1);
-        ps.insertProtocol(delay,ProtocolStack.ABOVE,SEQUENCER.class);
+//        DELAY delay=new DELAY();
+//        delay.setInDelay(1);
+//        delay.setOutDelay(1);
+//        ps.insertProtocol(delay,ProtocolStack.ABOVE,SEQUENCER.class);
         System.out.print("Insert delay \n");
 
         //***********  protocols definition
         
         for (Protocol i : ps.getProtocols()) {
-        	System.out.printf("get protocol %s\n", i.getName());
+            System.out.printf("get protocol %s\n", i.getName());
         }
-        
-        channel.connect("bank");
+      
         System.out.print("coordinator?\n");
         if (sequencer.isCoordinator()) {
-        	System.out.print("coordinator\n");
+            System.out.print("coordinator\n");
         } else {
-        	System.out.print("not the coordinator\n");
+            System.out.print("not the coordinator\n");
         }
-        
+
+    }
+    
+    private void start() throws Exception {
+        System.setProperty("java.net.preferIPv4Stack", "true");
+
+        System.setProperty("log4j.configurationFile","/log4j2.xml");
+        channel = new JChannel();
+        channel.connect("bank");
+        setUpProtocolStack();
 
 
         dispatcher = new MessageDispatcher(channel, null, null, this);
 
-        dao = new DbInterface();
+        dao = new DbImplementation();
 
         dao.start();
+
         String movie = "her";
         Data data = new Data(movie, null, Operation.CONSULTAR);
         byte[] buf = Util.streamableToByteBuffer(data);
@@ -112,6 +116,7 @@ public class Server implements RequestHandler {
                 new Seat(2, "A"));
         buf = Util.streamableToByteBuffer(data);
         this.handle(new Message(null, buf));
+
         waitAction();
         channel.close();
 

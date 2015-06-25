@@ -1,9 +1,12 @@
 package com.dist.common;
 
-public enum Operation {
+
+public enum Operation  {
 
     RESERVAR("RESERVAR",1),
-    CONSULTAR("CONSULTAR",2);
+    CONSULTAR("CONSULTAR",2),
+    EXECUTAR_BATCH("BATCH",3);
+    
     
     private String name;
     private int code;
