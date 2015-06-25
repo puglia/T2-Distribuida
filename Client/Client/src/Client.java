@@ -28,7 +28,6 @@ public class Client extends ReceiverAdapter {
     MessageDispatcher dispatcher;
     public static final long SERVER_TIMEOUT = 5000;
     String user_name=System.getProperty("user.name", "n/a");
-    RequestReceiver receiver = new RequestReceiver(this);
 
     public void receive(Message msg) {
         try {
