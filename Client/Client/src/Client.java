@@ -8,6 +8,7 @@ import org.jgroups.JChannel;
 import org.jgroups.Message;
 import org.jgroups.ReceiverAdapter;
 import org.jgroups.blocks.MessageDispatcher;
+import org.jgroups.blocks.RequestHandler;
 import org.jgroups.blocks.RequestOptions;
 import org.jgroups.blocks.ResponseMode;
 import org.jgroups.protocols.DELAY;
@@ -131,7 +132,6 @@ public class Client extends ReceiverAdapter {
         }
         dispatcher = new MessageDispatcher(channel, null, null);
 
-        
         System.out.print("Client initialized\n");
         
         waitValue();
@@ -212,7 +212,9 @@ public class Client extends ReceiverAdapter {
            number =  Math.abs(random.nextInt()%20);
            row = (char) ('A' + Math.abs(random.nextInt()%12)); 
            Seat seat = new Seat(number,Character.toString(row));
+
            Data data = new Data("her", InetAddress.getLocalHost().getHostName(), Operation.RESERVAR, seat);
+
            byte[] buf=Util.streamableToByteBuffer(data);
            dispatcher.castMessage(channel.getView().getMembers(), new Message(null, buf),options());
          }

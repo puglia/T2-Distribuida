@@ -30,6 +30,8 @@ public class Server implements RequestHandler {
             data = (Data) Util.streamableFromByteBuffer(Data.class,
                     msg.getRawBuffer(), msg.getOffset(), msg.getLength());
 
+            System.out.printf("Receive data from %s \n", msg.getSrc());
+
             switch (data.getOperation()) {
             
             case CONSULTAR:
@@ -93,13 +95,14 @@ public class Server implements RequestHandler {
 
     }
     
+    
     private void start() throws Exception {
         System.setProperty("java.net.preferIPv4Stack", "true");
-
         System.setProperty("log4j.configurationFile","/log4j2.xml");
         channel = new JChannel();
         channel.connect("bank");
         setUpProtocolStack();
+
 
 
         dispatcher = new MessageDispatcher(channel, null, null, this);
@@ -107,6 +110,7 @@ public class Server implements RequestHandler {
         dao = new DbImplementation();
 
         dao.start();
+
 
         String movie = "her";
         Data data = new Data(movie, null, Operation.CONSULTAR);
@@ -116,6 +120,7 @@ public class Server implements RequestHandler {
                 new Seat(2, "A"));
         buf = Util.streamableToByteBuffer(data);
         this.handle(new Message(null, buf));
+
 
         waitAction();
         channel.close();

@@ -4,6 +4,7 @@ import com.dist.common.BusinessException;
 import com.dist.common.Seat;
 
 public interface DbInterface {
+
     
     public void insert(String name, String movie, Seat seat) throws BusinessException;
     
@@ -12,6 +13,5 @@ public interface DbInterface {
     public void start();
     
     public void close();
-
 
 }

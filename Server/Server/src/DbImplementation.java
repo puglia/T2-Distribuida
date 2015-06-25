@@ -52,7 +52,6 @@ public class DbImplementation implements DbInterface {
 
     private void initializeDatabase() throws SQLException {
         
-        
         if(databaseInitialized())
             return;
 
@@ -76,6 +75,7 @@ public class DbImplementation implements DbInterface {
                 sql.append(", ").append(false);
                 sql.append(", NULL");
                 sql.append(", \'her\'").append(");");
+
             }
         stmt.executeUpdate(sql.toString());
         stmt.close();
@@ -125,8 +125,10 @@ public class DbImplementation implements DbInterface {
                 throw new BusinessException("Assento Ocupado");
             connection.setAutoCommit(false);
             PreparedStatement stmt;
+
             
             stmt = connection.prepareStatement("UPDATE ASSENTO SET  DONO=? , RESERVADO = TRUE WHERE NUMERO = ? AND FILEIRA = ? AND FILME=?;");
+
             stmt.setString(1,name);
             stmt.setInt(2, seat.getNumber());
             stmt.setString(3, seat.getRow().toUpperCase());
