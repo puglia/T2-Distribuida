@@ -105,10 +105,11 @@ public class DbInterface {
         stmt.setString(1, movie);
         stmt.setInt(2, seat.getNumber());
         stmt.setString(3, seat.getRow().toUpperCase());
+        System.out.printf("query %s\n", stmt.toString());
         ResultSet rs = stmt.executeQuery();
         
         if(!rs.next())
-            throw new BusinessException("Assento Não Encontrado");
+            throw new BusinessException("Assento Nao Encontrado");
         boolean taken = rs.getBoolean("reservado");
         rs.close();
         stmt.close();

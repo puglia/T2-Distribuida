@@ -2,10 +2,17 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.sql.SQLException;
 
+import org.jgroups.Address;
 import org.jgroups.JChannel;
 import org.jgroups.Message;
+import org.jgroups.View;
 import org.jgroups.blocks.MessageDispatcher;
 import org.jgroups.blocks.RequestHandler;
+import org.jgroups.protocols.DELAY;
+import org.jgroups.protocols.SEQUENCER;
+import org.jgroups.protocols.pbcast.NAKACK2;
+import org.jgroups.stack.Protocol;
+import org.jgroups.stack.ProtocolStack;
 import org.jgroups.util.Util;
 
 import com.dist.common.BusinessException;
@@ -26,8 +33,6 @@ public class Server implements RequestHandler {
             data = (Data) Util.streamableFromByteBuffer(Data.class,
                     msg.getRawBuffer(), msg.getOffset(), msg.getLength());
 
-            System.out.printf("Receive data from %s \n", data.getName());
-            
             switch (data.getOperation().getCode()) {
             case 2:
                 String seats = "";
@@ -41,6 +46,7 @@ public class Server implements RequestHandler {
                         seats);
                 return "Assentos para" + data.getMovie() + " = " + seats;
             case 1:
+            	System.out.printf("Receive data from %s, %s: %s-%d\n", data.getName(), data.getOperation().getName(), data.getReservedSeat().getRow(), data.getReservedSeat().getNumber());
                 dao.insert(data.getName(), data.getMovie(),
                         data.getReservedSeat());
             }
@@ -52,29 +58,53 @@ public class Server implements RequestHandler {
             e1.printStackTrace();
         }
 
-        return "Operação efetuada com Sucesso!";
+        return "Operacao efetuada com Sucesso!";
     }
-
+    
     private void start() throws Exception {
         System.setProperty("java.net.preferIPv4Stack", "true");
+        System.setProperty("log4j.configurationFile","/tmp/log4j2.xml");
+       
         channel = new JChannel();
         // channel.setReceiver(this);
+        
+        
+        
+        //******** protocols definition
+        System.out.print("protocol stack initialization\n");
+        ProtocolStack ps=channel.getProtocolStack();
+        SEQUENCER sequencer=new SEQUENCER();
+        
+        ps.insertProtocol(sequencer,ProtocolStack.ABOVE,NAKACK2.class);
+        System.out.print("Insert Sequencer \n");
+        DELAY delay=new DELAY();
+        delay.setInDelay(1);
+        delay.setOutDelay(1);
+        ps.insertProtocol(delay,ProtocolStack.ABOVE,SEQUENCER.class);
+        System.out.print("Insert delay \n");
+
+        //***********  protocols definition
+        
+        for (Protocol i : ps.getProtocols()) {
+        	System.out.printf("get protocol %s\n", i.getName());
+        }
+        
         channel.connect("bank");
+        System.out.print("coordinator?\n");
+        if (sequencer.isCoordinator()) {
+        	System.out.print("coordinator\n");
+        } else {
+        	System.out.print("not the coordinator\n");
+        }
+        
+
 
         dispatcher = new MessageDispatcher(channel, null, null, this);
 
         dao = new DbInterface();
 
         dao.start();
-        String accountName = "conta1";
-        // if (!bank.accountExists(accountName)) {
-        // bank.createAccount(accountName);
-        // }
-        // account.deposit(accountName, "Rafael", 1000);
-        //
-        // account.debit(accountName, "Thiago", 100);
-        //
-        // account.deposit(accountName, "Gianlucca", 500);
+
         Data data = new Data("jurassic world", null, Operation.CONSULTAR);
         byte[] buf = Util.streamableToByteBuffer(data);
         this.handle(new Message(null, buf));
