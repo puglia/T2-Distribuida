@@ -1,14 +1,15 @@
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.security.SecureRandom;
+import java.util.Enumeration;
 
 import org.jgroups.Address;
 import org.jgroups.JChannel;
 import org.jgroups.Message;
 import org.jgroups.ReceiverAdapter;
 import org.jgroups.blocks.MessageDispatcher;
-import org.jgroups.blocks.RequestHandler;
 import org.jgroups.blocks.RequestOptions;
 import org.jgroups.blocks.ResponseMode;
 import org.jgroups.protocols.DELAY;
@@ -49,7 +50,11 @@ public class Client extends ReceiverAdapter {
         channel=new JChannel();
         channel.setReceiver(this);
         
-        
+        //name the element
+        Enumeration<NetworkInterface> n = NetworkInterface.getNetworkInterfaces();
+        NetworkInterface iface = n.nextElement();
+        Enumeration<InetAddress> inet = iface.getInetAddresses();
+        channel.setName("client_" + inet.nextElement().getHostAddress());
 
         
         //******** protocols definition
@@ -60,7 +65,7 @@ public class Client extends ReceiverAdapter {
         
         ps.insertProtocol(sequencer,ProtocolStack.ABOVE,NAKACK2.class);
 
-        channel.connect("bank");
+        channel.connect("cinema");
         int i = 0;
         for (Address add : channel.getView().getMembers()) {
             System.out.printf(" addr: %s \n", add.toString() );

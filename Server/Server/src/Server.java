@@ -1,6 +1,9 @@
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.sql.SQLException;
+import java.util.Enumeration;
 
 import org.jgroups.JChannel;
 import org.jgroups.Message;
@@ -98,12 +101,17 @@ public class Server implements RequestHandler {
         System.setProperty("log4j.configurationFile","/log4j2.xml");
         channel = new JChannel();
 
-        
+        //name the element
+        Enumeration<NetworkInterface> n = NetworkInterface.getNetworkInterfaces();
+        NetworkInterface iface = n.nextElement();
+        Enumeration<InetAddress> inet = iface.getInetAddresses();
+        channel.setName("server_" + inet.nextElement().getHostAddress());
+       
         
         setUpProtocolStack();
 
 
-        channel.connect("bank");
+        channel.connect("cinema");
         dispatcher = new MessageDispatcher(channel, null, null, this);
 
         dao = new DbImplementation();
