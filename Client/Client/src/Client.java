@@ -42,46 +42,6 @@ public class Client extends ReceiverAdapter {
         }
     }
     
-    private void setProtocols() throws Exception{
-
-        //******** protocols definition
-        System.out.print("protocol stack initialization\n");
-        ProtocolStack ps=channel.getProtocolStack();
-
-        SEQUENCER sequencer=new SEQUENCER();
-        
-        ps.insertProtocol(sequencer,ProtocolStack.ABOVE,NAKACK2.class);
-        
-        int i = 0;
-        for (Address add : channel.getView().getMembers()) {
-            System.out.printf(" addr: %s \n", add.toString() );
-            if (add.equals(channel.getAddress()) && i == 2) {
-                System.out.printf("I am the delayed one %s\n",  channel.getAddressAsString());
-                DELAY delay=new DELAY();
-                //delay.setInDelay(730);
-                //delay.setOutDelay(730);
-                try {
-//                    ps.insertProtocol(delay,ProtocolStack.ABOVE,SEQUENCER.class);
-                } catch (Exception e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
-            }
-            i++;
-        }
-        
-        for (Protocol p : ps.getProtocols()) {
-            System.out.printf("get protocol %s\n", p.getName());
-        }
-        //***********  protocols definition
-        
-        if (sequencer.isCoordinator()) {
-            System.out.print("coordinator\n");
-        } else {
-            System.out.print("not the coordinator\n");
-        }
-        
-    }
 
     private void start() throws Exception {
     	System.setProperty("java.net.preferIPv4Stack", "true");
@@ -99,8 +59,8 @@ public class Client extends ReceiverAdapter {
         SEQUENCER sequencer=new SEQUENCER();
         
         ps.insertProtocol(sequencer,ProtocolStack.ABOVE,NAKACK2.class);
-        channel.connect("bank");
 
+        channel.connect("bank");
         int i = 0;
         for (Address add : channel.getView().getMembers()) {
             System.out.printf(" addr: %s \n", add.toString() );
@@ -123,7 +83,7 @@ public class Client extends ReceiverAdapter {
             System.out.printf("get protocol %s\n", p.getName());
         }
         //***********  protocols definition
-        
+
 
         if (sequencer.isCoordinator()) {
         	System.out.print("coordinator\n");
@@ -226,7 +186,7 @@ public class Client extends ReceiverAdapter {
     }
     
     private RequestOptions options(){
-        return new RequestOptions(ResponseMode.GET_FIRST, SERVER_TIMEOUT);
+        return new RequestOptions(ResponseMode.GET_ALL, SERVER_TIMEOUT);
     }
 
     public static void main(String[] args) throws Exception {

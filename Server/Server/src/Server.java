@@ -74,10 +74,7 @@ public class Server implements RequestHandler {
         
         ps.insertProtocol(sequencer,ProtocolStack.ABOVE,NAKACK2.class);
         System.out.print("Insert Sequencer \n");
-//        DELAY delay=new DELAY();
-//        delay.setInDelay(1);
-//        delay.setOutDelay(1);
-//        ps.insertProtocol(delay,ProtocolStack.ABOVE,SEQUENCER.class);
+
         System.out.print("Insert delay \n");
 
         //***********  protocols definition
@@ -100,11 +97,13 @@ public class Server implements RequestHandler {
         System.setProperty("java.net.preferIPv4Stack", "true");
         System.setProperty("log4j.configurationFile","/log4j2.xml");
         channel = new JChannel();
-        channel.connect("bank");
+
+        
+        
         setUpProtocolStack();
 
 
-
+        channel.connect("bank");
         dispatcher = new MessageDispatcher(channel, null, null, this);
 
         dao = new DbImplementation();
