@@ -126,11 +126,10 @@ public class DbImplementation implements DbInterface {
         try {
             if(isSeatTaken(show, seat))
                 throw new BusinessException("Assento Ocupado");
-            System.out.printf("GO\n");
+
             connection.setAutoCommit(false);
             PreparedStatement stmt;
-            
-           
+
             stmt = connection.prepareStatement("INSERT INTO "+ table +" (HORA,DONO,RESERVADO,NUMERO,FILEIRA, ARTISTA) VALUES (?,?,?,?,?,?);");
             stmt.setLong(1,time);
             stmt.setString(2,name);

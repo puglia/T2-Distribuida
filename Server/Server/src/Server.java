@@ -34,7 +34,6 @@ public class Server implements RequestHandler {
 
     public Object handle(Message msg) throws Exception {
         
-        System.out.printf("estamos aqui \n");
         /////////////// set delay
         ProtocolStack ps=channel.getProtocolStack();
         if (_delay) {
@@ -57,8 +56,6 @@ public class Server implements RequestHandler {
         try {
             data = (Data) Util.streamableFromByteBuffer(Data.class,
                     msg.getRawBuffer(), msg.getOffset(), msg.getLength());
-
-            System.out.printf("Receive data from %s \n", msg.getSrc());
 
             switch (data.getOperation()) {
             
@@ -136,25 +133,16 @@ public class Server implements RequestHandler {
         
         /////////////// set delay
         ProtocolStack ps=channel.getProtocolStack();
-        int i = 0;
-        for (Address add : channel.getView().getMembers()) {
-            System.out.printf(" addr: %s \n", add.toString() );
-            if (add.equals(channel.getAddress()) && i == 1) {
-                _delay = true;
-                lero = "test tests";
-                System.out.printf("I am the delayed one %s\n",  channel.getAddressAsString());
-                DELAY delay=new DELAY();
-                delay.setInDelay(5000);
-                //delay.setOutDelay(5000);
-                try {
-                    ps.insertProtocol(delay,ProtocolStack.ABOVE,PING.class);
-                } catch (Exception e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
-            }
-            i++;
+
+        String delayedAddr = "server_192.168.85.105";
+        if (delayedAddr.equals(channel.getAddress().toString())) {
+            _delay = true;
+            System.out.printf("I am the delayed one %s\n",  channel.getAddressAsString());
+            DELAY delay=new DELAY();
+            delay.setInDelay(5000);
+            ps.insertProtocol(delay,ProtocolStack.ABOVE,PING.class);
         }
+
         /////////////// set delay
         
         dispatcher = new MessageDispatcher(channel, null, null, this);
@@ -162,17 +150,6 @@ public class Server implements RequestHandler {
         dao = new DbImplementation();
 
         dao.start();
-
-
-//        String artista = "Perl Jam";
-//        Data data = new Data(artista, null, Operation.CONSULTAR);
-//        byte[] buf = Util.streamableToByteBuffer(data);
-//        this.handle(new Message(null, buf));
-//        data = new Data(artista, "192.168.1.4", Operation.RESERVAR,
-//                new Seat(2, "A"));
-//        buf = Util.streamableToByteBuffer(data);
-//        this.handle(new Message(null, buf));
-
 
         waitAction();
         channel.close();
