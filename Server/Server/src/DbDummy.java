@@ -9,7 +9,7 @@ public class DbDummy implements DbInterface {
     Map<String, SeatAllocation[]> seats = new HashMap<>();
 
     @Override
-    public void insert(String name, String movie, Seat seat)
+    public void insert(String name, String movie, Seat seat, long time)
             throws BusinessException {
         String row = seat.getRow().toUpperCase();
         if(seats.get(row)[seat.getNumber()] != null)
@@ -20,7 +20,7 @@ public class DbDummy implements DbInterface {
     }
 
     @Override
-    public String getAvailableSeats(String movie) throws SQLException {
+    public String getWaitingList(String artista) throws SQLException {
         StringBuilder builder = new StringBuilder();
 
         for (String row : seats.keySet())

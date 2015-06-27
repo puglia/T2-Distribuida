@@ -6,9 +6,9 @@ import com.dist.common.Seat;
 public interface DbInterface {
 
     
-    public void insert(String name, String movie, Seat seat) throws BusinessException;
+    public void insert(String name, String show, Seat seat, long time) throws BusinessException;
     
-    public String getAvailableSeats(String movie) throws SQLException;
+    public String getWaitingList(String show) throws SQLException;
     
     public void start();
     
