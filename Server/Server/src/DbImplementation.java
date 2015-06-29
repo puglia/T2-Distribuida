@@ -108,7 +108,7 @@ public class DbImplementation implements DbInterface {
         stmt.setString(1, movie);
         stmt.setInt(2, seat.getNumber());
         stmt.setString(3, seat.getRow().toUpperCase());
-        System.out.printf("query %s\n", stmt.toString());
+
         ResultSet rs = stmt.executeQuery();
         boolean taken = false;
         if(!rs.next()) {
@@ -125,11 +125,13 @@ public class DbImplementation implements DbInterface {
         
         try {
             if(isSeatTaken(show, seat))
-                throw new BusinessException("Assento Ocupado");
+                throw new BusinessException("Assento Ocupado\n");
 
             connection.setAutoCommit(false);
             PreparedStatement stmt;
-
+            
+            long messageTime = System.currentTimeMillis() - time;
+            System.out.printf("massage took %d\n", messageTime);
             stmt = connection.prepareStatement("INSERT INTO "+ table +" (HORA,DONO,RESERVADO,NUMERO,FILEIRA, ARTISTA) VALUES (?,?,?,?,?,?);");
             stmt.setLong(1,time);
             stmt.setString(2,name);
@@ -138,7 +140,7 @@ public class DbImplementation implements DbInterface {
             stmt.setString(5, seat.getRow().toUpperCase());
             stmt.setString(6, show);
 
-            System.out.printf("insert is %s\n", stmt.toString());
+//            System.out.printf("insert is %s\n", stmt.toString());
             stmt.execute();
 
             stmt.close();

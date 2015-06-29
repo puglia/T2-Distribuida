@@ -12,8 +12,9 @@ import org.jgroups.ReceiverAdapter;
 import org.jgroups.blocks.MessageDispatcher;
 import org.jgroups.blocks.RequestOptions;
 import org.jgroups.blocks.ResponseMode;
-import org.jgroups.protocols.DELAY;
 import org.jgroups.protocols.SEQUENCER;
+import org.jgroups.protocols.UNICAST3;
+import org.jgroups.stack.Protocol;
 import org.jgroups.stack.ProtocolStack;
 import org.jgroups.util.RspList;
 import org.jgroups.util.Util;
@@ -21,7 +22,6 @@ import org.jgroups.util.Util;
 import com.dist.common.Data;
 import com.dist.common.Operation;
 import com.dist.common.Seat;
-import com.dist.common.helper;
 
 public class Client extends ReceiverAdapter {
     JChannel channel;
@@ -55,12 +55,34 @@ public class Client extends ReceiverAdapter {
         Enumeration<InetAddress> inet = iface.getInetAddresses();
         channel.setName("client_" + inet.nextElement().getHostAddress());
 
-        helper h = new helper(channel);
-        h.setUpProtocolStack();
 
-        channel.connect("show");
-        
+        // define the cluster connection
+        BufferedReader in=new BufferedReader(new InputStreamReader(System.in));
+        System.out.printf("Digite o nome do show: ");
+        System.out.flush();
+        String artist=in.readLine().toLowerCase();
 
+        ProtocolStack ps=channel.getProtocolStack();
+        SEQUENCER sequencer=new SEQUENCER();
+        if ( artist.equals("acdc")) {
+            //******** protocols definition
+            System.out.print("protocol stack initialization\n");
+            ps.insertProtocol(sequencer,ProtocolStack.ABOVE,UNICAST3.class);
+            
+        }
+        for (Protocol i : ps.getProtocols()) {
+            System.out.printf("get protocol %s\n", i.getName());
+        }
+        channel.connect(artist);
+
+        if ( artist.equals("acdc")) {
+        System.out.print("coordinator?\n");
+        if (sequencer.isCoordinator()) {
+            System.out.print("coordinator\n");
+        } else {
+            System.out.print("not the coordinator\n");
+        }
+        }
         dispatcher = new MessageDispatcher(channel, null, null);
 
         System.out.print("Client initialized\n");
@@ -82,14 +104,15 @@ public class Client extends ReceiverAdapter {
                 }
                 Data data = null;
                 if (line.startsWith("consulta")) {
-                    String movie = line.replace("consulta ", "").trim();
-                    data = new Data(movie, channel.getAddressAsString(),  Operation.CONSULTAR);
+                    String show = channel.getClusterName();
+                    data = new Data(show, channel.getAddressAsString(),  Operation.CONSULTAR);
                 } else if (line.startsWith("reserva")) {
-                    String movie = line.replace("reserva ", "").trim();
+                    String show = channel.getClusterName();
                     System.out.print("Informe um assento (fileira e numero):");
                     String param[]=in.readLine().toLowerCase().trim().split(" ", 2);
                     Seat seat = new Seat(Integer.parseInt(param[1]),param[0]);
-                    data = new Data(movie, channel.getAddressAsString(), Operation.RESERVAR, seat);
+                    data = new Data(show, channel.getAddressAsString(), Operation.RESERVAR, seat);
+                    System.out.printf("time %d\n", data.getTime());
                     line="[" + user_name + "] -> " + line;
                 } 
                 else if(line.startsWith("batch")){
@@ -125,7 +148,7 @@ public class Client extends ReceiverAdapter {
            row = (char) ('A' + Math.abs(random.nextInt()%12)); 
            Seat seat = new Seat(number,Character.toString(row));
 
-           Data data = new Data("her", InetAddress.getLocalHost().getHostName(), Operation.RESERVAR, seat);
+           Data data = new Data("titas", InetAddress.getLocalHost().getHostName(), Operation.RESERVAR, seat);
 
            byte[] buf=Util.streamableToByteBuffer(data);
            dispatcher.castMessage(channel.getView().getMembers(), new Message(null, buf),options());
@@ -138,7 +161,7 @@ public class Client extends ReceiverAdapter {
     }
     
     private RequestOptions options(){
-        return new RequestOptions(ResponseMode.GET_ALL, SERVER_TIMEOUT);
+        return new RequestOptions(ResponseMode.GET_FIRST, SERVER_TIMEOUT);
     }
 
     public static void main(String[] args) throws Exception {

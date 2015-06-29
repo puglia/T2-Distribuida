@@ -5,52 +5,37 @@ import java.net.NetworkInterface;
 import java.sql.SQLException;
 import java.util.Enumeration;
 
-import org.jgroups.Address;
 import org.jgroups.JChannel;
 import org.jgroups.Message;
 import org.jgroups.blocks.MessageDispatcher;
 import org.jgroups.blocks.RequestHandler;
 import org.jgroups.protocols.DELAY;
-import org.jgroups.protocols.PING;
 import org.jgroups.protocols.SEQUENCER;
-import org.jgroups.protocols.UFC;
+import org.jgroups.protocols.UDP;
+import org.jgroups.protocols.UNICAST3;
 import org.jgroups.stack.Protocol;
 import org.jgroups.stack.ProtocolStack;
 import org.jgroups.util.Util;
 
 import com.dist.common.BusinessException;
 import com.dist.common.Data;
-import com.dist.common.helper;
 
 public class Server implements RequestHandler {
-    JChannel channel;
+    JChannel channel_seq;
+    JChannel channel_nseq;
     MessageDispatcher dispatcher;
     String user_name = System.getProperty("user.name", "n/a");
     boolean _delay = false;
     boolean invert = false;
     String lero = "test";
+    
+    ProtocolStack ps_seq;
+    ProtocolStack ps_nseq;
 
     private DbInterface dao = null;
 
     public Object handle(Message msg) throws Exception {
         
-        /////////////// set delay
-        ProtocolStack ps=channel.getProtocolStack();
-        if (_delay) {
-            System.out.printf("I am the delayed one %s\n",  channel.getAddressAsString());
-            if(!invert) {
-                System.out.printf("false\n");
-                ps.removeProtocol(UFC.class);
-                invert = true;
-            } else {
-                System.out.printf("true\n");
-                DELAY delay=new DELAY();
-                delay.setInDelay(5000);
-                ps.insertProtocol(delay,ProtocolStack.ABOVE,PING.class);
-                invert = false;
-            }
-        }
-        /////////////// set delay
 
         Data data = null;
         try {
@@ -86,73 +71,94 @@ public class Server implements RequestHandler {
             // TODO Auto-generated catch block
             e1.printStackTrace();
         }
+        
+        /////////////// set delay
+        if (_delay) {
+            if(!invert) {
+                System.out.printf("delay was on\n");
+                //ps_seq.removeProtocol(DELAY.class);
+                ps_nseq.removeProtocol(DELAY.class);
+                invert = true;
+            } else {
+                System.out.printf("delay was off\n");
+                DELAY delay=new DELAY();
+                delay.setInDelay(5000);
+                //ps_seq.insertProtocol(delay,ProtocolStack.ABOVE, UDP.class);
+                ps_nseq.insertProtocol(delay,ProtocolStack.ABOVE, UDP.class);
+                invert = false;
+            }
+        }
+        /////////////// set delay
 
         return "Operacao efetuada com Sucesso!";
 
     }
-    
-    public void delay(int pos, int usec) {
-        int i = 0;
-        ProtocolStack ps=channel.getProtocolStack();
-        for (Address add : channel.getView().getMembers()) {
-            System.out.printf(" addr: %s \n", add.toString() );
-            if (add.equals(channel.getAddress()) && i == pos) {
-                System.out.printf("I am the delayed one %s\n",  channel.getAddressAsString());
-                DELAY delay=new DELAY();
-                delay.setInDelay(usec);
-                //delay.setOutDelay(usec);
 
-                try {
-                    ps.insertProtocol(delay,ProtocolStack.ABOVE,SEQUENCER.class);
-                } catch (Exception e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
-            }
-            i++;
-        }
-    }
-    
     private void start() throws Exception {
         System.setProperty("java.net.preferIPv4Stack", "true");
         System.setProperty("log4j.configurationFile","/log4j2.xml");
-        channel = new JChannel();
+        channel_seq = new JChannel();
+        channel_nseq = new JChannel();
 
         //name the element
         Enumeration<NetworkInterface> n = NetworkInterface.getNetworkInterfaces();
         NetworkInterface iface = n.nextElement();
         Enumeration<InetAddress> inet = iface.getInetAddresses();
-        channel.setName("server_" + inet.nextElement().getHostAddress());
+        String Addr = inet.nextElement().getHostAddress();
+        channel_seq.setName("server_" + Addr);
+        channel_nseq.setName("server_" + Addr);
        
         
-        helper h = new helper(channel);
-        h.setUpProtocolStack();
+        ps_seq=channel_seq.getProtocolStack();
+        ps_nseq=channel_nseq.getProtocolStack();
+        
+//        //******** protocols definition
+//        System.out.print("protocol stack initialization\n");
+//        SEQUENCER sequencer=new SEQUENCER();
+//        ps_seq.insertProtocol(sequencer,ProtocolStack.ABOVE,UNICAST3.class);
+//
+//        //***********  protocols definition
+//        
+        for (Protocol i : ps_seq.getProtocols()) {
+            System.out.printf("get protocol %s\n", i.getName());
+        }
+      
+        channel_seq.connect("acdc");
+        channel_nseq.connect("pearl jam");
+        
+//        System.out.print("coordinator?\n");
+//        if (sequencer.isCoordinator()) {
+//            System.out.print("coordinator\n");
+//        } else {
+//            System.out.print("not the coordinator\n");
+//        }
 
-
-        channel.connect("show");
         
         /////////////// set delay
-        ProtocolStack ps=channel.getProtocolStack();
 
         String delayedAddr = "server_192.168.85.105";
-        if (delayedAddr.equals(channel.getAddress().toString())) {
+        if (delayedAddr.equals(channel_seq.getAddress().toString())) {
+
             _delay = true;
-            System.out.printf("I am the delayed one %s\n",  channel.getAddressAsString());
+            System.out.printf("I am the delayed one %s\n",  channel_seq.getAddressAsString());
             DELAY delay=new DELAY();
             delay.setInDelay(5000);
-            ps.insertProtocol(delay,ProtocolStack.ABOVE,PING.class);
+            //ps_seq.insertProtocol(delay,ProtocolStack.ABOVE, UDP.class);
+            ps_nseq.insertProtocol(delay,ProtocolStack.ABOVE, UDP.class);
         }
 
         /////////////// set delay
         
-        dispatcher = new MessageDispatcher(channel, null, null, this);
+        dispatcher = new MessageDispatcher(channel_seq, null, null, this);
+        dispatcher = new MessageDispatcher(channel_nseq, null, null, this);
 
         dao = new DbImplementation();
 
         dao.start();
 
         waitAction();
-        channel.close();
+        channel_seq.close();
+        channel_nseq.close();
 
     }
 
