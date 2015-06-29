@@ -12,8 +12,19 @@ import org.jgroups.ReceiverAdapter;
 import org.jgroups.blocks.MessageDispatcher;
 import org.jgroups.blocks.RequestOptions;
 import org.jgroups.blocks.ResponseMode;
+import org.jgroups.protocols.BARRIER;
+import org.jgroups.protocols.FD_ALL;
+import org.jgroups.protocols.FD_SOCK;
+import org.jgroups.protocols.FRAG2;
+import org.jgroups.protocols.MERGE2;
+import org.jgroups.protocols.MFC;
+import org.jgroups.protocols.RSVP;
 import org.jgroups.protocols.SEQUENCER;
+import org.jgroups.protocols.UFC;
 import org.jgroups.protocols.UNICAST3;
+import org.jgroups.protocols.VERIFY_SUSPECT;
+import org.jgroups.protocols.pbcast.STABLE;
+import org.jgroups.protocols.pbcast.STATE_TRANSFER;
 import org.jgroups.stack.Protocol;
 import org.jgroups.stack.ProtocolStack;
 import org.jgroups.util.RspList;
@@ -44,11 +55,11 @@ public class Client extends ReceiverAdapter {
     
 
     private void start() throws Exception {
-    	System.setProperty("java.net.preferIPv4Stack", "true");
+        System.setProperty("java.net.preferIPv4Stack", "true");
         System.setProperty("log4j.configurationFile","/log4j2.xml");
         channel=new JChannel();
         channel.setReceiver(this);
-        
+
         //name the element
         Enumeration<NetworkInterface> n = NetworkInterface.getNetworkInterfaces();
         NetworkInterface iface = n.nextElement();
@@ -63,12 +74,16 @@ public class Client extends ReceiverAdapter {
         String artist=in.readLine().toLowerCase();
 
         ProtocolStack ps=channel.getProtocolStack();
+
+
+
+        
         SEQUENCER sequencer=new SEQUENCER();
         if ( artist.equals("acdc")) {
             //******** protocols definition
             System.out.print("protocol stack initialization\n");
             ps.insertProtocol(sequencer,ProtocolStack.ABOVE,UNICAST3.class);
-            
+
         }
         for (Protocol i : ps.getProtocols()) {
             System.out.printf("get protocol %s\n", i.getName());
@@ -76,17 +91,17 @@ public class Client extends ReceiverAdapter {
         channel.connect(artist);
 
         if ( artist.equals("acdc")) {
-        System.out.print("coordinator?\n");
-        if (sequencer.isCoordinator()) {
-            System.out.print("coordinator\n");
-        } else {
-            System.out.print("not the coordinator\n");
-        }
+            System.out.print("coordinator?\n");
+            if (sequencer.isCoordinator()) {
+                System.out.print("coordinator\n");
+            } else {
+                System.out.print("not the coordinator\n");
+            }
         }
         dispatcher = new MessageDispatcher(channel, null, null);
 
         System.out.print("Client initialized\n");
-        
+
         waitValue();
 
         channel.close();

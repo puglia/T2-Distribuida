@@ -31,6 +31,8 @@ public class Server implements RequestHandler {
     
     ProtocolStack ps_seq;
     ProtocolStack ps_nseq;
+    
+    DELAY delayDefault;
 
     private DbInterface dao = null;
 
@@ -76,15 +78,11 @@ public class Server implements RequestHandler {
         if (_delay) {
             if(!invert) {
                 System.out.printf("delay was on\n");
-                //ps_seq.removeProtocol(DELAY.class);
-                ps_nseq.removeProtocol(DELAY.class);
+                delayDefault.setInDelay(5);
                 invert = true;
             } else {
                 System.out.printf("delay was off\n");
-                DELAY delay=new DELAY();
-                delay.setInDelay(5000);
-                //ps_seq.insertProtocol(delay,ProtocolStack.ABOVE, UDP.class);
-                ps_nseq.insertProtocol(delay,ProtocolStack.ABOVE, UDP.class);
+                delayDefault.setInDelay(5000);
                 invert = false;
             }
         }
@@ -111,40 +109,40 @@ public class Server implements RequestHandler {
         
         ps_seq=channel_seq.getProtocolStack();
         ps_nseq=channel_nseq.getProtocolStack();
+
+
+        //******** protocols definition
+        System.out.print("protocol stack initialization\n");
+        SEQUENCER sequencer=new SEQUENCER();
+        ps_seq.insertProtocol(sequencer,ProtocolStack.ABOVE,UNICAST3.class);
+
+        //***********  protocols definition
         
-//        //******** protocols definition
-//        System.out.print("protocol stack initialization\n");
-//        SEQUENCER sequencer=new SEQUENCER();
-//        ps_seq.insertProtocol(sequencer,ProtocolStack.ABOVE,UNICAST3.class);
-//
-//        //***********  protocols definition
-//        
-        for (Protocol i : ps_seq.getProtocols()) {
+        for (Protocol i : ps_nseq.getProtocols()) {
             System.out.printf("get protocol %s\n", i.getName());
         }
       
         channel_seq.connect("acdc");
         channel_nseq.connect("pearl jam");
         
-//        System.out.print("coordinator?\n");
-//        if (sequencer.isCoordinator()) {
-//            System.out.print("coordinator\n");
-//        } else {
-//            System.out.print("not the coordinator\n");
-//        }
+        System.out.print("coordinator?\n");
+        if (sequencer.isCoordinator()) {
+            System.out.print("coordinator\n");
+        } else {
+            System.out.print("not the coordinator\n");
+        }
 
         
         /////////////// set delay
 
         String delayedAddr = "server_192.168.85.105";
         if (delayedAddr.equals(channel_seq.getAddress().toString())) {
-
             _delay = true;
             System.out.printf("I am the delayed one %s\n",  channel_seq.getAddressAsString());
-            DELAY delay=new DELAY();
-            delay.setInDelay(5000);
-            //ps_seq.insertProtocol(delay,ProtocolStack.ABOVE, UDP.class);
-            ps_nseq.insertProtocol(delay,ProtocolStack.ABOVE, UDP.class);
+            delayDefault=new DELAY();
+            delayDefault.setInDelay(5000);
+            ps_seq.insertProtocol(delayDefault,ProtocolStack.ABOVE, UDP.class);
+            //ps_nseq.insertProtocol(delayDefault,ProtocolStack.ABOVE, UDP.class);
         }
 
         /////////////// set delay
