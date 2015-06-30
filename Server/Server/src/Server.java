@@ -36,11 +36,11 @@ public class Server implements RequestHandler {
 
     private DbInterface dao = null;
 
+    // handle the input messages
     public Object handle(Message msg) throws Exception {
-        
-
         Data data = null;
         try {
+            // recover the message from buffer
             data = (Data) Util.streamableFromByteBuffer(Data.class,
                     msg.getRawBuffer(), msg.getOffset(), msg.getLength());
 
@@ -48,12 +48,11 @@ public class Server implements RequestHandler {
             
             case CONSULTAR:
             System.out.printf("Receive data from %s \n", msg.getSrc());
-            
                 String seats = "";
                 try {
+                    // get the queue
                     seats = dao.getWaitingList(data.getArtista());
                 } catch (SQLException e) {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
                 System.out.printf("Assentos para %s= %s \n", data.getArtista(),
@@ -61,7 +60,8 @@ public class Server implements RequestHandler {
                 return "Assentos para" + data.getArtista() + " = " + seats;
             case RESERVAR:
             	System.out.printf("Receive data from %s, %s: %s-%d\n", data.getName(), data.getOperation().getName(), data.getReservedSeat().getRow(), data.getReservedSeat().getNumber());
-                dao.insert(data.getName(), data.getArtista(),
+                // insert on queue
+            	dao.insert(data.getName(), data.getArtista(),
                         data.getReservedSeat(), data.getTime());
             default:
                 break;
@@ -70,7 +70,6 @@ public class Server implements RequestHandler {
             return e1.getLocalizedMessage();
         }
         catch (Exception e1) {
-            // TODO Auto-generated catch block
             e1.printStackTrace();
         }
         
@@ -82,7 +81,7 @@ public class Server implements RequestHandler {
                 invert = true;
             } else {
                 System.out.printf("delay was off\n");
-                delayDefault.setInDelay(5000);
+                delayDefault.setInDelay(6000);
                 invert = false;
             }
         }
@@ -95,6 +94,7 @@ public class Server implements RequestHandler {
     private void start() throws Exception {
         System.setProperty("java.net.preferIPv4Stack", "true");
         System.setProperty("log4j.configurationFile","/log4j2.xml");
+        // two channels, one for each show
         channel_seq = new JChannel();
         channel_nseq = new JChannel();
 
@@ -106,7 +106,7 @@ public class Server implements RequestHandler {
         channel_seq.setName("server_" + Addr);
         channel_nseq.setName("server_" + Addr);
        
-        
+        //get protocol stack from channels
         ps_seq=channel_seq.getProtocolStack();
         ps_nseq=channel_nseq.getProtocolStack();
 
@@ -115,16 +115,19 @@ public class Server implements RequestHandler {
         System.out.print("protocol stack initialization\n");
         SEQUENCER sequencer=new SEQUENCER();
         ps_seq.insertProtocol(sequencer,ProtocolStack.ABOVE,UNICAST3.class);
-
         //***********  protocols definition
         
-        for (Protocol i : ps_nseq.getProtocols()) {
+        // print the protocol stack
+        for (Protocol i : ps_seq.getProtocols()) {
             System.out.printf("get protocol %s\n", i.getName());
         }
       
+        // connecting to the cluster
         channel_seq.connect("acdc");
         channel_nseq.connect("pearl jam");
         
+        
+        //in sequencer cluster, check if we are the coordinator
         System.out.print("coordinator?\n");
         if (sequencer.isCoordinator()) {
             System.out.print("coordinator\n");
@@ -134,19 +137,18 @@ public class Server implements RequestHandler {
 
         
         /////////////// set delay
-
         String delayedAddr = "server_192.168.85.105";
         if (delayedAddr.equals(channel_seq.getAddress().toString())) {
             _delay = true;
             System.out.printf("I am the delayed one %s\n",  channel_seq.getAddressAsString());
             delayDefault=new DELAY();
-            delayDefault.setInDelay(5000);
+            delayDefault.setInDelay(6000);
             ps_seq.insertProtocol(delayDefault,ProtocolStack.ABOVE, UDP.class);
             //ps_nseq.insertProtocol(delayDefault,ProtocolStack.ABOVE, UDP.class);
         }
-
         /////////////// set delay
         
+        // initializing object to synchronize messages
         dispatcher = new MessageDispatcher(channel_seq, null, null, this);
         dispatcher = new MessageDispatcher(channel_nseq, null, null, this);
 
